@@ -52,6 +52,7 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -302,15 +303,17 @@ public class JsonReader implements RecordReader {
                     FSDataInputStream underlying,
                     long size,
                     TypeDescription schema,
-                    String timestampFormat) throws IOException {
-    this(new JsonStreamParser(reader), underlying, size, schema, timestampFormat);
+                    String timestampFormat,
+                    Map<String, String> keyMap) throws IOException {
+    this(new JsonStreamParser(reader), underlying, size, schema, timestampFormat, keyMap);
   }
 
   public JsonReader(Iterator<JsonElement> parser,
                     FSDataInputStream underlying,
                     long size,
                     TypeDescription schema,
-                    String timestampFormat) throws IOException {
+                    String timestampFormat,
+                    Map<String, String> keyMap) throws IOException {
     this.schema = schema;
     if (schema.getCategory() != TypeDescription.Category.STRUCT) {
       throw new IllegalArgumentException("Root must be struct - " + schema);
@@ -335,12 +338,28 @@ public class JsonReader implements RecordReader {
       for(int c=0; c < converters.length; ++c) {
         // look up each field to see if it is in the input, otherwise
         // set it to null.
-        JsonElement field = elem.get(fieldNames.get(c));
-        if (field == null) {
-          batch.cols[c].noNulls = false;
-          batch.cols[c].isNull[batch.size] = true;
-        } else {
-          converters[c].convert(field, batch.cols[c], batch.size);
+        // TODO: ここのマッピング情報を操作する必要がある。
+        HashMap<String, String> _tmp = new HashMap<String, String>();
+        _tmp.put("a", "b");
+        String keyName = fieldNames.get(c);
+        if (_tmp.containsKey(keyName)){
+          // TODO: Now working
+          String afterKey = _tmp.get(keyName);
+          JsonElement field = elem.get(afterKey);
+          if (field == null) {
+            batch.cols[c].noNulls = false;
+            batch.cols[c].isNull[batch.size] = true;
+          } else {
+            converters[c].convert(field, batch.cols[c], batch.size);
+          }
+        }else {
+          JsonElement field = elem.get(fieldNames.get(c));
+          if (field == null) {
+            batch.cols[c].noNulls = false;
+            batch.cols[c].isNull[batch.size] = true;
+          } else {
+            converters[c].convert(field, batch.cols[c], batch.size);
+          }
         }
       }
       batch.size++;

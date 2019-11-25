@@ -24,6 +24,7 @@ import org.apache.orc.TypeDescription;
 import org.junit.Test;
 
 import java.io.StringReader;
+import java.util.HashMap;
 
 import static org.junit.Assert.assertEquals;
 
@@ -37,7 +38,7 @@ public class TestJsonReader {
         StringReader input = new StringReader(s);
         TypeDescription schema = TypeDescription.fromString(
                 "struct<a:timestamp>");
-        JsonReader reader = new JsonReader(input, null, 1, schema, tsFormat);
+        JsonReader reader = new JsonReader(input, null, 1, schema, tsFormat, new HashMap<>());
         VectorizedRowBatch batch = schema.createRowBatch(2);
         assertEquals(true, reader.nextBatch(batch));
         assertEquals(2, batch.size);
@@ -59,7 +60,7 @@ public class TestJsonReader {
         StringReader input = new StringReader(s);
         TypeDescription schema = TypeDescription.fromString(
                 "struct<a:timestamp>");
-        JsonReader reader = new JsonReader(input, null, 1, schema, tsFormat);
+        JsonReader reader = new JsonReader(input, null, 1, schema, tsFormat, new HashMap<>());
         VectorizedRowBatch batch = schema.createRowBatch(6);
         assertEquals(true, reader.nextBatch(batch));
         assertEquals(6, batch.size);

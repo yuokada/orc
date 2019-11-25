@@ -17,6 +17,8 @@
  */
 package org.apache.orc.tools.convert;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
@@ -38,9 +40,14 @@ import org.apache.orc.tools.json.JsonSchemaFinder;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 
 /**
@@ -59,6 +66,7 @@ public class ConvertTool {
   private final String timestampFormat;
   private final Writer writer;
   private final VectorizedRowBatch batch;
+  private final Map<String, String> keyMap;
 
   TypeDescription buildSchema(List<FileInformation> files,
                               Configuration conf) throws IOException {
@@ -146,7 +154,8 @@ public class ConvertTool {
         }
         case JSON: {
           FSDataInputStream underlying = filesystem.open(path);
-          return new JsonReader(getReader(underlying), underlying, size, schema, timestampFormat);
+          Map<String, String> m = new HashMap<String, String>() {{put("a", "b");}};
+          return new JsonReader(getReader(underlying), underlying, size, schema, timestampFormat, m);
         }
         case CSV: {
           FSDataInputStream underlying = filesystem.open(path);
@@ -179,6 +188,19 @@ public class ConvertTool {
                      String[] args) throws IOException, ParseException {
     CommandLine opts = parseOptions(args);
     fileList = buildFileList(opts.getArgs(), conf);
+
+    String jmap = opts.getOptionValue("m", "");
+    if (!jmap.isEmpty()){
+      Type listType = new TypeToken<HashMap<String, String>>() { }. getType();
+      Map<String, String> keymap =
+         ((Map<String, String>) new Gson().fromJson(jmap, listType)).entrySet()
+           .stream()
+           .collect(Collectors.toMap(Entry::getValue, Entry::getKey));
+      this.keyMap = keymap;
+    }else{
+      this.keyMap = new HashMap<>();
+    }
+
     if (opts.hasOption('s')) {
       this.schema = TypeDescription.fromString(opts.getOptionValue('s'));
     } else {
@@ -254,6 +276,9 @@ public class ConvertTool {
     options.addOption(
             Option.builder("t").longOpt("timestampformat").desc("Timestamp Format")
             .hasArg().build());
+    options.addOption(
+            Option.builder("m").longOpt("keymap").desc("Key mapping information")
+                    .hasArg().build());
     CommandLine cli = new DefaultParser().parse(options, args);
     if (cli.hasOption('h') || cli.getArgs().length == 0) {
       HelpFormatter formatter = new HelpFormatter();
