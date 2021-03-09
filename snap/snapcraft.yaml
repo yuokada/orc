@@ -1,5 +1,5 @@
 name: orc
-version: '1.5.2'
+version: '1.6.7'
 summary: Apache ORC is the fastest columnar file format for big data.
 description: |
   Apache ORC is the smallest, fastest columnar file format for Spark
@@ -13,7 +13,7 @@ parts:
   orc:
     source: https://github.com/apache/orc.git
     source-type: git
-    source-tag: rel/release-1.5.2
+    source-tag: rel/release-1.6.7
     plugin: cmake
     configflags:
       - -DLZ4_HOME=/usr
