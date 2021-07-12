@@ -207,8 +207,7 @@ public class PrintData {
       TypeDescription schema = reader.getSchema();
       VectorizedRowBatch batch = schema.createRowBatch();
       Integer counter = 0;
-      label:
-      while (rows.nextBatch(batch)) {
+      while (rows.nextBatch(batch) && counter < numberOfRows.get()) {
         for (int r=0; r < batch.size; ++r) {
           JSONWriter writer = new JSONWriter(out);
           printRow(writer, batch, schema, r);
@@ -217,12 +216,9 @@ public class PrintData {
           if (printStream.checkError()) {
             throw new IOException("Error encountered when writing to stdout.");
           }
-          if (numberOfRows.isPresent()) {
-            counter++;
-            if (counter >= numberOfRows.get()){
-              break label;
-            }
-
+          counter++;
+          if (counter >= numberOfRows.get()){
+            break;
           }
         }
       }
